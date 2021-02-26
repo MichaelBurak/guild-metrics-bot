@@ -2,8 +2,6 @@
 # import logging
 from pymongo import MongoClient
 import os
-# import random
-# import re
 
 import discord
 from discord.ext import commands
@@ -15,8 +13,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from textblob import TextBlob
 from pymongo import MongoClient
-from transformers import pipeline
-# env var handling of token and testing Google Sheet
+# from transformers import pipeline -- add text summary later
+
+# env var handling of token and mongo connection
 load_dotenv()
 
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -27,16 +26,7 @@ db = cluster["test"]
 
 text_col = db["text"]
 
-# intents = discord.Intents.all()
-# intents.members = True
-
 bot = commands.Bot(command_prefix="^")
-
-# check functions
-
-
-def check(message):
-    return message.author.id == some_author_id
 
 
 @bot.command()
@@ -45,16 +35,9 @@ async def test(ctx):
 
 
 @bot.command()
-async def channellist(ctx):
-    channels = ctx.guild.text_channels
-    channel_names = [c.name for c in channels]
-
-    await ctx.send(channel_names)
-
-
-@bot.command()
 async def mostfreq(ctx):
-    channel = ctx.channel
+    '''Display countplot of most frequent message authors in
+    command channel, displaying twice?'''
     counter = 0
     df = pd.DataFrame(columns=['author'])
     for channel in ctx.guild.text_channels:
@@ -75,6 +58,9 @@ async def mostfreq(ctx):
 
 @bot.command()
 async def mongscrape(ctx):
+    '''scrape all messages and dump content, time, author,
+    sentiment polarity into mongodb atlas instance'''
+
     mongo_docs = []
     for channel in ctx.guild.text_channels:
         async for message in channel.history(limit=1000):
@@ -87,11 +73,14 @@ async def mongscrape(ctx):
     text_col.insert_many(mongo_docs)
     await ctx.send("finished scraping to mongo")
 
-# requires buildpack or nltk.txt
+# requires buildpack or nltk.txt for textblob
 
 
 @bot.command()
 async def polarity(ctx):
+    '''display polarity by author on barplot
+    currently grouped by mean, needs testing'''
+
     msgs = []
     for channel in ctx.guild.text_channels:
         async for message in channel.history(limit=1000):
@@ -101,7 +90,7 @@ async def polarity(ctx):
                 'author': message.author.name,
                 'polarity': polarity})
     df = pd.DataFrame(msgs)
-    df = df.groupby(['author']).sum()
+    df = df.groupby(['author']).mean()
 
     barplot = sns.barplot(y=df.index, x=df.polarity)
     plt.tight_layout()
@@ -114,6 +103,9 @@ async def polarity(ctx):
 
 @bot.command()
 async def countreact(ctx):
+    '''give a count of each emoji used in text channels
+    (should refactor for just top emojis)'''
+
     counter = 0
     emojis = {}
     for channel in ctx.guild.text_channels:
@@ -125,17 +117,12 @@ async def countreact(ctx):
                     emojis[react.emoji] += 1
     await ctx.send(emojis)
 
-'''huggingface doens't play nice w/heroku
-@bot.command()
-async def sentiment(ctx):
-    nlp = pipeline("sentiment-analysis")
-    result = nlp(ctx.message.content)[0]
-    await ctx.send(f"That message seemed {result['label'].lower()}")
-'''
-
 
 @bot.command()
 async def sentiment(ctx):
+    '''give the TextBlob polarity of a passed in string 
+    as positive, neutral or negative'''
+
     blob = TextBlob(ctx.message.content)
     polarity = blob.sentiment.polarity
     if polarity == 0:
@@ -148,6 +135,9 @@ async def sentiment(ctx):
 
 @bot.command()
 async def usersentiment(ctx, user: discord.Member = None):
+    '''display a histogram distribution of the polarity of a 
+    given user's messages in all text channels'''
+
     polarities = []
     for channel in ctx.guild.text_channels:
         async for message in channel.history(limit=1000):
@@ -167,6 +157,8 @@ async def usersentiment(ctx, user: discord.Member = None):
 
 @bot.command()
 async def favoriteemoji(ctx, user: discord.Member = None):
+    '''output most used emoji of a given user in all text channels'''
+
     emojis = {}
     for channel in ctx.guild.text_channels:
         async for message in channel.history(limit=1000):
@@ -179,22 +171,6 @@ async def favoriteemoji(ctx, user: discord.Member = None):
             else:
                 await ctx.send("You must select a user")
     sorted_emojis = dict(sorted(emojis.items(), key=lambda item: item[1]))
-    # print(sorted_emojis)
     await ctx.send(f"User's favorite emoji is {list(sorted_emojis.keys())[-1]}")
-
-
-# probably best to be an API call and return as loading is slow
-# @bot.command()
-# async def summarizeuser(ctx, user: discord.Member = None):
-#     summarizer = pipeline("summarization")
-
-#     if not user:
-#         await ctx.send('You must specify a user')
-#     else:
-#         messages = await channel.history(limit=100, check=check).flatten()
-#         messages = ' '.join(messages)
-#         summary = summarizer(messages, max_length=130,
-#                              min_length=30, do_sample=False)
-#         await ctx.send(summary)
 
 bot.run(TOKEN)
