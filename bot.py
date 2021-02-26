@@ -85,6 +85,28 @@ async def mongscrape(ctx):
 
 
 @bot.command()
+async def polarity(ctx):
+    msgs = []
+    for channel in ctx.guild.text_channels:
+        async for message in channel.history(limit=1000):
+            blob = TextBlob(message.content)
+            polarity = blob.sentiment.polarity
+            msgs.append({
+                'author': message.author.name,
+                'polarity': polarity})
+    df = pd.DataFrame(msgs)
+    df = df.groupby(['author']).sum()
+
+    barplot = sns.barplot(y=df.index, x=df.polarity)
+    plt.tight_layout()
+    fig = barplot.get_figure()
+    fig.savefig("polarity.png")
+
+    await ctx.send(file=discord.File('polarity.png'))
+    os.remove('polarity.png')
+
+
+@bot.command()
 async def countreact(ctx):
     counter = 0
     emojis = {}
