@@ -1,5 +1,6 @@
 # bot.py
 # import logging
+from pymongo import MongoClient
 import os
 # import random
 # import re
@@ -12,11 +13,22 @@ import pandas as pd
 import io
 import matplotlib.pyplot as plt
 import seaborn as sns
+from textblob import TextBlob
+from pymongo import MongoClient
 
 # env var handling of token and testing Google Sheet
 load_dotenv()
 
 TOKEN = os.getenv('DISCORD_TOKEN')
+MONGO_URL = os.getenv("MONGO_URL")
+cluster = MongoClient(MONGO_URL)
+
+db = cluster["test"]
+
+text_col = db["text"]
+
+# intents = discord.Intents.all()
+# intents.members = True
 
 bot = commands.Bot(command_prefix="^")
 
@@ -55,5 +67,35 @@ async def mostfreq(ctx):
 
     await ctx.send(file=discord.File('author.png'))
     os.remove('author.png')
+
+
+@bot.command()
+async def mongscrape(ctx):
+    mongo_docs = []
+    for channel in ctx.guild.text_channels:
+        async for message in channel.history(limit=1000):
+            blob = TextBlob(message.content)
+            polarity = blob.sentiment.polarity
+            mongo_docs.append({'content': message.content,
+                               'time': message.created_at,
+                               'author': message.author.name,
+                               'polarity': polarity})
+    text_col.insert_many(mongo_docs)
+    await ctx.send("finished scraping to mongo")
+
+
+@bot.command()
+async def countreact(ctx):
+    counter = 0
+    emojis = {}
+    for channel in ctx.guild.text_channels:
+        async for message in channel.history(limit=1000):
+            for react in message.reactions:
+                if not react.emoji in emojis:
+                    emojis[react.emoji] = 1
+                else:
+                    emojis[react.emoji] += 1
+    await ctx.send(emojis)
+
 
 bot.run(TOKEN)
