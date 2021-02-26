@@ -1,14 +1,13 @@
 # bot.py
 # import logging
-from pymongo import MongoClient
-import os
-
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 from discord.utils import get
-import pandas as pd
+import os
 import io
+from datetime import datetime, timedelta
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from textblob import TextBlob
@@ -31,13 +30,14 @@ bot = commands.Bot(command_prefix="^")
 
 @bot.command()
 async def test(ctx):
+    '''this is just a test'''
     await ctx.send("server metrics bot test")
 
 
 @bot.command()
 async def mostfreq(ctx):
     '''Display countplot of most frequent message authors in
-    command channel, displaying twice?'''
+    command channel'''
     counter = 0
     df = pd.DataFrame(columns=['author'])
     for channel in ctx.guild.text_channels:
@@ -172,5 +172,21 @@ async def favoriteemoji(ctx, user: discord.Member = None):
                 await ctx.send("You must select a user")
     sorted_emojis = dict(sorted(emojis.items(), key=lambda item: item[1]))
     await ctx.send(f"User's favorite emoji is {list(sorted_emojis.keys())[-1]}")
+
+
+@bot.command()
+async def weeklystats(ctx):
+    '''display stats about the last week of the server text channels'''
+
+    today = datetime.now()
+    one_week_ago = today - timedelta(days=7)
+    counter = 0
+    users = []
+    for channel in ctx.guild.text_channels:
+        async for message in channel.history(limit=1000, before=today, after=one_week_ago):
+            if not message.author in users:
+                users.append(message.author)
+            counter += 1
+    await ctx.send(f"{counter} messages in the last week by {len(users)} users")
 
 bot.run(TOKEN)
