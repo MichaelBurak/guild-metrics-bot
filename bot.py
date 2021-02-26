@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from textblob import TextBlob
 from pymongo import MongoClient
-
+from transformers import pipeline
 # env var handling of token and testing Google Sheet
 load_dotenv()
 
@@ -32,7 +32,11 @@ text_col = db["text"]
 
 bot = commands.Bot(command_prefix="^")
 
-# on ready, add users
+# check functions
+
+
+def check(message):
+    return message.author.id == some_author_id
 
 
 @bot.command()
@@ -121,5 +125,26 @@ async def countreact(ctx):
                     emojis[react.emoji] += 1
     await ctx.send(emojis)
 
+
+@bot.command()
+async def sentiment(ctx):
+    nlp = pipeline("sentiment-analysis")
+    result = nlp(ctx.message.content)[0]
+    await ctx.send(f"That message seemed {result['label'].lower()}")
+
+
+# probably best to be an API call and return as loading is slow
+# @bot.command()
+# async def summarizeuser(ctx, user: discord.Member = None):
+#     summarizer = pipeline("summarization")
+
+#     if not user:
+#         await ctx.send('You must specify a user')
+#     else:
+#         messages = await channel.history(limit=100, check=check).flatten()
+#         messages = ' '.join(messages)
+#         summary = summarizer(messages, max_length=130,
+#                              min_length=30, do_sample=False)
+#         await ctx.send(summary)
 
 bot.run(TOKEN)
