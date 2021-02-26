@@ -189,4 +189,54 @@ async def weeklystats(ctx):
             counter += 1
     await ctx.send(f"{counter} messages in the last week by {len(users)} users")
 
+
+@bot.command()
+async def engagingmessage(ctx, message_id):
+    msg = await ctx.fetch_message(message_id)
+    reaction_counts = 0
+    for reaction in msg.reactions:
+        reaction_counts += reaction.count
+    embed = discord.Embed(description=msg.content)
+    embed.set_author(name=msg.author.display_name)
+    embed.set_footer(text=f"{reaction_counts} reactions to messasge")
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def reactiontimes(ctx):
+    counter = 0
+    reaction_messages = []
+    for channel in ctx.guild.text_channels:
+        async for message in channel.history(limit=1000):
+            if message.reactions:
+                message_react_counts = 0
+                for reaction in message.reactions:
+                    message_react_counts += 1
+                reaction_messages.append({'content': message.content,
+                                          'time': message.created_at,
+                                          'author': message.author.name,
+                                          'reaction_count': message_react_counts})
+    df = pd.DataFrame(reaction_messages)
+    df['time'] = pd.to_datetime(df['time'])
+    df = df.set_index('time')
+
+    time_chart = df.plot(marker='.')
+    plt.tight_layout()
+    fig = time_chart.get_figure()
+    fig.savefig("react_ts.png")
+
+    await ctx.send(file=discord.File('react_ts.png'))
+    os.remove('react_ts.png')
+
+    # user_reacts = sns.barplot(y=df['author'], x=df['reaction_count'])
+    # plt.tight_layout()
+    # fig = user_reacts.get_figure()
+    # fig.savefig("react_ts.png")
+
+    # await ctx.send(file=discord.File('react_ts.png'))
+    # os.remove('react_ts.png')
+
+    await ctx.send("reaction messages command finished")
+
+
 bot.run(TOKEN)
