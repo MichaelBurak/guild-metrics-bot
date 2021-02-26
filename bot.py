@@ -125,12 +125,62 @@ async def countreact(ctx):
                     emojis[react.emoji] += 1
     await ctx.send(emojis)
 
-
+'''huggingface doens't play nice w/heroku
 @bot.command()
 async def sentiment(ctx):
     nlp = pipeline("sentiment-analysis")
     result = nlp(ctx.message.content)[0]
     await ctx.send(f"That message seemed {result['label'].lower()}")
+'''
+
+
+@bot.command()
+async def sentiment(ctx):
+    blob = TextBlob(ctx.message.content)
+    polarity = blob.sentiment.polarity
+    if polarity == 0:
+        await ctx.send("That message seemed neutral")
+    elif polarity > 0:
+        await ctx.send("That message seemed positive")
+    else:
+        await ctx.send("That message seemed negative")
+
+
+@bot.command()
+async def usersentiment(ctx, user: discord.Member = None):
+    polarities = []
+    for channel in ctx.guild.text_channels:
+        async for message in channel.history(limit=1000):
+            if message.author == user:
+                blob = TextBlob(message.content)
+                polarity = blob.sentiment.polarity
+                polarities.append(polarity)
+    df = pd.DataFrame({'polarity': polarities})
+    histogram = df.plot.hist()
+    plt.tight_layout()
+    fig = histogram.get_figure()
+    fig.savefig("polarity.png")
+
+    await ctx.send(file=discord.File('polarity.png'))
+    os.remove('polarity.png')
+
+
+@bot.command()
+async def favoriteemoji(ctx, user: discord.Member = None):
+    emojis = {}
+    for channel in ctx.guild.text_channels:
+        async for message in channel.history(limit=1000):
+            if message.author == user:
+                for react in message.reactions:
+                    if not react.emoji in emojis:
+                        emojis[react.emoji] = 1
+                    else:
+                        emojis[react.emoji] += 1
+            else:
+                await ctx.send("You must select a user")
+    sorted_emojis = dict(sorted(emojis.items(), key=lambda item: item[1]))
+    # print(sorted_emojis)
+    await ctx.send(f"User's favorite emoji is {list(sorted_emojis.keys())[-1]}")
 
 
 # probably best to be an API call and return as loading is slow
