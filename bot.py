@@ -83,6 +83,8 @@ async def mongscrape(ctx):
     text_col.insert_many(mongo_docs)
     await ctx.send("finished scraping to mongo")
 
+# requires buildpack or nltk.txt
+
 
 @bot.command()
 async def polarity(ctx):
