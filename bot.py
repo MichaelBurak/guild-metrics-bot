@@ -120,7 +120,7 @@ async def countreact(ctx):
 
 @bot.command()
 async def sentiment(ctx):
-    '''give the TextBlob polarity of a passed in string 
+    '''give the TextBlob polarity of a passed in string
     as positive, neutral or negative'''
 
     blob = TextBlob(ctx.message.content)
@@ -135,7 +135,7 @@ async def sentiment(ctx):
 
 @bot.command()
 async def usersentiment(ctx, user: discord.Member = None):
-    '''display a histogram distribution of the polarity of a 
+    '''display a histogram distribution of the polarity of a
     given user's messages in all text channels'''
 
     polarities = []
@@ -219,6 +219,7 @@ async def reactiontimes(ctx):
     df = pd.DataFrame(reaction_messages)
     df['time'] = pd.to_datetime(df['time'])
     df = df.set_index('time')
+    df = df.resample('W').sum()
 
     time_chart = df.plot(marker='.')
     plt.tight_layout()
@@ -238,5 +239,30 @@ async def reactiontimes(ctx):
 
     await ctx.send("reaction messages command finished")
 
+
+@bot.command()
+async def lastweekreacts(ctx, threshold):
+    threshold = int(threshold)
+    msgs = []
+    today = datetime.now()
+    one_week_ago = today - timedelta(days=7)
+    message_react_counts = 0
+    for channel in ctx.guild.text_channels:
+        async for message in channel.history(limit=1000, after=one_week_ago):
+            if message.reactions:
+                print(message.content)
+                # message_react_counts = 0
+                for reaction in message.reactions:
+                    message_react_counts += 1
+                if message_react_counts >= threshold:
+                    msgs.append(message)
+    for msg in msgs:
+        reaction_counts = 0
+        for reaction in msg.reactions:
+            reaction_counts += reaction.count
+        embed = discord.Embed(description=msg.content)
+        embed.set_author(name=msg.author.display_name)
+        embed.set_footer(text=f"{reaction_counts} reactions to messasge")
+        await ctx.send(embed=embed)
 
 bot.run(TOKEN)
