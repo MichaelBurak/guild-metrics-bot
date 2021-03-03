@@ -1,6 +1,6 @@
 # Guild Metrics Bot
 
-## A [Discord.py](https://discordpy.readthedocs.io/en/latest/index.html#getting-started) Bot for Server/Channel/Message/User analysis focusing on Natural Language PRocessing
+## A [Discord.py](https://discordpy.readthedocs.io/en/latest/index.html#getting-started) Bot for Server/Channel/Message/User analysis focusing on Natural Language Processing and usage stats
 
 - Functionality:
 - General:
