@@ -28,6 +28,16 @@ text_col = db["text"]
 bot = commands.Bot(command_prefix="^")
 
 
+async def display_plot(ctx, plot_type, path="plot.png"):
+    plot = plot_type
+    plt.tight_layout()
+    fig = plot.get_figure()
+    fig.savefig(path)
+
+    await ctx.send(file=discord.File(path))
+    os.remove(path)
+
+
 @bot.command()
 async def test(ctx):
     '''this is just a test'''
@@ -48,12 +58,14 @@ async def mostfreq(ctx):
 
     countplot = sns.countplot(
         y="author", data=df, order=df['author'].value_counts().iloc[:3].index)
-    plt.tight_layout()
-    fig = countplot.get_figure()
-    fig.savefig("author.png")
 
-    await ctx.send(file=discord.File('author.png'))
-    os.remove('author.png')
+    await display_plot(ctx, countplot)
+    # plt.tight_layout()
+    # fig = countplot.get_figure()
+    # fig.savefig("author.png")
+
+    # await ctx.send(file=discord.File('author.png'))
+    # os.remove('author.png')
 
 
 @bot.command()
@@ -93,12 +105,7 @@ async def polarity(ctx):
     df = df.groupby(['author']).mean()
 
     barplot = sns.barplot(y=df.index, x=df.polarity)
-    plt.tight_layout()
-    fig = barplot.get_figure()
-    fig.savefig("polarity.png")
-
-    await ctx.send(file=discord.File('polarity.png'))
-    os.remove('polarity.png')
+    await display_plot(ctx, barplot)
 
 
 @bot.command()
@@ -147,12 +154,7 @@ async def usersentiment(ctx, user: discord.Member = None):
                 polarities.append(polarity)
     df = pd.DataFrame({'polarity': polarities})
     histogram = df.plot.hist()
-    plt.tight_layout()
-    fig = histogram.get_figure()
-    fig.savefig("polarity.png")
-
-    await ctx.send(file=discord.File('polarity.png'))
-    os.remove('polarity.png')
+    display_plot(ctx, histogram)
 
 
 @bot.command()
@@ -222,22 +224,7 @@ async def reactiontimes(ctx):
     df = df.resample('W').sum()
 
     time_chart = df.plot(marker='.')
-    plt.tight_layout()
-    fig = time_chart.get_figure()
-    fig.savefig("react_ts.png")
-
-    await ctx.send(file=discord.File('react_ts.png'))
-    os.remove('react_ts.png')
-
-    # user_reacts = sns.barplot(y=df['author'], x=df['reaction_count'])
-    # plt.tight_layout()
-    # fig = user_reacts.get_figure()
-    # fig.savefig("react_ts.png")
-
-    # await ctx.send(file=discord.File('react_ts.png'))
-    # os.remove('react_ts.png')
-
-    await ctx.send("reaction messages command finished")
+    display_plot(ctx, time_chart)
 
 
 @bot.command()
