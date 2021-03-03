@@ -194,6 +194,7 @@ async def weeklystats(ctx):
 
 @bot.command()
 async def engagingmessage(ctx, message_id):
+    ''' Get reaction counts for a message '''
     msg = await ctx.fetch_message(message_id)
     reaction_counts = 0
     for reaction in msg.reactions:
@@ -206,6 +207,7 @@ async def engagingmessage(ctx, message_id):
 
 @bot.command()
 async def reactiontimes(ctx):
+    ''' Plot out amount of reactions on a server by week '''
     counter = 0
     reaction_messages = []
     for channel in ctx.guild.text_channels:
@@ -229,6 +231,7 @@ async def reactiontimes(ctx):
 
 @bot.command()
 async def lastweekreacts(ctx, threshold):
+    ''' Display messages that have passed a user-provided threshold of n reacts in the last week '''
     threshold = int(threshold)
     msgs = []
     today = datetime.now()
