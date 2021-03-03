@@ -60,12 +60,6 @@ async def mostfreq(ctx):
         y="author", data=df, order=df['author'].value_counts().iloc[:3].index)
 
     await display_plot(ctx, countplot)
-    # plt.tight_layout()
-    # fig = countplot.get_figure()
-    # fig.savefig("author.png")
-
-    # await ctx.send(file=discord.File('author.png'))
-    # os.remove('author.png')
 
 
 @bot.command()
@@ -85,13 +79,12 @@ async def mongscrape(ctx):
     text_col.insert_many(mongo_docs)
     await ctx.send("finished scraping to mongo")
 
-# requires buildpack or nltk.txt for textblob
-
 
 @bot.command()
 async def polarity(ctx):
     '''display polarity by author on barplot
-    currently grouped by mean, needs testing'''
+    currently grouped by mean, needs testing, 
+    requires buildpack or nltk.txt for textblob when deploying to heroku'''
 
     msgs = []
     for channel in ctx.guild.text_channels:
