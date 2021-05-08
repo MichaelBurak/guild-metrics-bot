@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from discord.utils import get
 import os
 import io
+import sys
 from datetime import datetime, timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -25,7 +26,34 @@ db = cluster["test"]
 
 text_col = db["text"]
 
-bot = commands.Bot(command_prefix="^")
+# https://gist.github.com/EvieePy/d78c061a4798ae81be9825468fe146be
+
+
+def get_prefix(bot, message):
+    """A callable Prefix for our bot. This could be edited to allow per server prefixes."""
+
+    # Notice how you can use spaces in prefixes. Try to keep them simple though.
+    prefixes = ['^']
+
+    # Check to see if we are outside of a guild. e.g DM's etc.
+    if not message.guild:
+        # Only allow ? to be used in DMs
+        return '?'
+
+    # If we are in a guild, we allow for the user to mention us or use any of the prefixes in our list.
+    return commands.when_mentioned_or(*prefixes)(bot, message)
+
+
+# folders paths are in
+initial_extensions = ['cogs.nlp']
+
+bot = commands.Bot(command_prefix=get_prefix)
+
+# Here we load our extensions(cogs) listed above in [initial_extensions].
+if __name__ == '__main__':
+    for extension in initial_extensions:
+        print(extension)
+        bot.load_extension(extension)
 
 
 async def display_plot(ctx, plot_type, path="plot.png"):
@@ -44,22 +72,22 @@ async def test(ctx):
     await ctx.send("server metrics bot test")
 
 
-@bot.command()
-async def mostfreq(ctx):
-    '''Display countplot of most frequent message authors in
-    command channel'''
-    counter = 0
-    df = pd.DataFrame(columns=['author'])
-    for channel in ctx.guild.text_channels:
-        async for message in channel.history(limit=1000):
-            # if not message.author.bot:
-            df = df.append(
-                {'author': message.author.name}, ignore_index=True)
+# @bot.command()
+# async def mostfreq(ctx):
+#     '''Display countplot of most frequent message authors in
+#     command channel'''
+#     counter = 0
+#     df = pd.DataFrame(columns=['author'])
+#     for channel in ctx.guild.text_channels:
+#         async for message in channel.history(limit=1000):
+#             # if not message.author.bot:
+#             df = df.append(
+#                 {'author': message.author.name}, ignore_index=True)
 
-    countplot = sns.countplot(
-        y="author", data=df, order=df['author'].value_counts().iloc[:3].index)
+#     countplot = sns.countplot(
+#         y="author", data=df, order=df['author'].value_counts().iloc[:3].index)
 
-    await display_plot(ctx, countplot)
+#     await display_plot(ctx, countplot)
 
 
 @bot.command()
@@ -248,4 +276,4 @@ async def lastweekreacts(ctx, threshold):
         embed.set_footer(text=f"{reaction_counts} reactions to messasge")
         await ctx.send(embed=embed)
 
-bot.run(TOKEN)
+bot.run(TOKEN, bot=True)
