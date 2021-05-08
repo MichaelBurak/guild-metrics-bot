@@ -29,65 +29,25 @@ text_col = db["text"]
 # https://gist.github.com/EvieePy/d78c061a4798ae81be9825468fe146be
 
 
-def get_prefix(bot, message):
-    """A callable Prefix for our bot. This could be edited to allow per server prefixes."""
-
-    # Notice how you can use spaces in prefixes. Try to keep them simple though.
-    prefixes = ['^']
-
-    # Check to see if we are outside of a guild. e.g DM's etc.
-    if not message.guild:
-        # Only allow ? to be used in DMs
-        return '?'
-
-    # If we are in a guild, we allow for the user to mention us or use any of the prefixes in our list.
-    return commands.when_mentioned_or(*prefixes)(bot, message)
-
-
 # folders paths are in
 initial_extensions = ['cogs.nlp']
 
-bot = commands.Bot(command_prefix=get_prefix)
+bot = commands.Bot(command_prefix="^")
 
 # Here we load our extensions(cogs) listed above in [initial_extensions].
-if __name__ == '__main__':
-    for extension in initial_extensions:
-        print(extension)
-        bot.load_extension(extension)
-
-
-async def display_plot(ctx, plot_type, path="plot.png"):
-    plot = plot_type
-    plt.tight_layout()
-    fig = plot.get_figure()
-    fig.savefig(path)
-
-    await ctx.send(file=discord.File(path))
-    os.remove(path)
+# if __name__ == '__main__':
+for extension in initial_extensions:
+    print(extension)
+    bot.load_extension(extension)
+    cog = bot.get_cog('Nlp Commands')
+    commands = cog.get_commands()
+    print([c.name for c in commands])
 
 
 @bot.command()
 async def test(ctx):
     '''this is just a test'''
     await ctx.send("server metrics bot test")
-
-
-# @bot.command()
-# async def mostfreq(ctx):
-#     '''Display countplot of most frequent message authors in
-#     command channel'''
-#     counter = 0
-#     df = pd.DataFrame(columns=['author'])
-#     for channel in ctx.guild.text_channels:
-#         async for message in channel.history(limit=1000):
-#             # if not message.author.bot:
-#             df = df.append(
-#                 {'author': message.author.name}, ignore_index=True)
-
-#     countplot = sns.countplot(
-#         y="author", data=df, order=df['author'].value_counts().iloc[:3].index)
-
-#     await display_plot(ctx, countplot)
 
 
 @bot.command()
@@ -106,27 +66,6 @@ async def mongscrape(ctx):
                                'polarity': polarity})
     text_col.insert_many(mongo_docs)
     await ctx.send("finished scraping to mongo")
-
-
-@bot.command()
-async def polarity(ctx):
-    '''display polarity by author on barplot
-    currently grouped by mean, needs testing, 
-    requires buildpack or nltk.txt for textblob when deploying to heroku'''
-
-    msgs = []
-    for channel in ctx.guild.text_channels:
-        async for message in channel.history(limit=1000):
-            blob = TextBlob(message.content)
-            polarity = blob.sentiment.polarity
-            msgs.append({
-                'author': message.author.name,
-                'polarity': polarity})
-    df = pd.DataFrame(msgs)
-    df = df.groupby(['author']).mean()
-
-    barplot = sns.barplot(y=df.index, x=df.polarity)
-    await display_plot(ctx, barplot)
 
 
 @bot.command()
@@ -161,21 +100,21 @@ async def sentiment(ctx):
         await ctx.send("That message seemed negative")
 
 
-@bot.command()
-async def usersentiment(ctx, user: discord.Member = None):
-    '''display a histogram distribution of the polarity of a
-    given user's messages in all text channels'''
+# @bot.command()
+# async def usersentiment(ctx, user: discord.Member = None):
+#     '''display a histogram distribution of the polarity of a
+#     given user's messages in all text channels'''
 
-    polarities = []
-    for channel in ctx.guild.text_channels:
-        async for message in channel.history(limit=1000):
-            if message.author == user:
-                blob = TextBlob(message.content)
-                polarity = blob.sentiment.polarity
-                polarities.append(polarity)
-    df = pd.DataFrame({'polarity': polarities})
-    histogram = df.plot.hist()
-    display_plot(ctx, histogram)
+#     polarities = []
+#     for channel in ctx.guild.text_channels:
+#         async for message in channel.history(limit=1000):
+#             if message.author == user:
+#                 blob = TextBlob(message.content)
+#                 polarity = blob.sentiment.polarity
+#                 polarities.append(polarity)
+#     df = pd.DataFrame({'polarity': polarities})
+#     histogram = df.plot.hist()
+#     display_plot(ctx, histogram)
 
 
 @bot.command()
@@ -226,28 +165,28 @@ async def engagingmessage(ctx, message_id):
     await ctx.send(embed=embed)
 
 
-@bot.command()
-async def reactiontimes(ctx):
-    ''' Plot out amount of reactions on a server by week '''
-    counter = 0
-    reaction_messages = []
-    for channel in ctx.guild.text_channels:
-        async for message in channel.history(limit=1000):
-            if message.reactions:
-                message_react_counts = 0
-                for reaction in message.reactions:
-                    message_react_counts += 1
-                reaction_messages.append({'content': message.content,
-                                          'time': message.created_at,
-                                          'author': message.author.name,
-                                          'reaction_count': message_react_counts})
-    df = pd.DataFrame(reaction_messages)
-    df['time'] = pd.to_datetime(df['time'])
-    df = df.set_index('time')
-    df = df.resample('W').sum()
+# @bot.command()
+# async def reactiontimes(ctx):
+#     ''' Plot out amount of reactions on a server by week '''
+#     counter = 0
+#     reaction_messages = []
+#     for channel in ctx.guild.text_channels:
+#         async for message in channel.history(limit=1000):
+#             if message.reactions:
+#                 message_react_counts = 0
+#                 for reaction in message.reactions:
+#                     message_react_counts += 1
+#                 reaction_messages.append({'content': message.content,
+#                                           'time': message.created_at,
+#                                           'author': message.author.name,
+#                                           'reaction_count': message_react_counts})
+#     df = pd.DataFrame(reaction_messages)
+#     df['time'] = pd.to_datetime(df['time'])
+#     df = df.set_index('time')
+#     df = df.resample('W').sum()
 
-    time_chart = df.plot(marker='.')
-    display_plot(ctx, time_chart)
+#     time_chart = df.plot(marker='.')
+#     display_plot(ctx, time_chart)
 
 
 @bot.command()

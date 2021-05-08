@@ -1,11 +1,14 @@
 import discord
 from discord.ext import commands
-from discord.ext.commands import Co
+from discord.ext.commands import Cog
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from textblob import TextBlob
-from bot import display_plot
+# from bot import display_plot
+from bot import db, text_col
+
+import os
 
 """A simple cog example with simple commands. Showcased here are some check decorators, and the use of events in cogs.
 For a list of inbuilt checks:
@@ -20,9 +23,18 @@ http://discordpy.readthedocs.io/en/rewrite/ext/commands/api.html#event-reference
 
 class NlpCog(commands.Cog, name="Nlp Commands"):
     """NlpCog"""
-
     def __init__(self, bot):
         self.bot = bot
+
+    async def display_plot(self,ctx, plot_type, path="plot.png"):
+        plot = plot_type
+        plt.tight_layout()
+        fig = plot.get_figure()
+        fig.savefig(path)
+
+        await ctx.send(file=discord.File(path))
+        os.remove(path)
+
 
     @commands.command(name='repeat', aliases=['copy', 'mimic'])
     async def do_repeat(self, ctx, *, our_input: str):
@@ -35,7 +47,6 @@ class NlpCog(commands.Cog, name="Nlp Commands"):
     async def mostfreq(self, ctx):
         '''Display countplot of most frequent message authors in
         command channel'''
-        counter = 0
         df = pd.DataFrame(columns=['author'])
         for channel in ctx.guild.text_channels:
             async for message in channel.history(limit=1000):
@@ -46,7 +57,28 @@ class NlpCog(commands.Cog, name="Nlp Commands"):
         countplot = sns.countplot(
             y="author", data=df, order=df['author'].value_counts().iloc[:3].index)
 
-        await display_plot(ctx, countplot)
+        await self.display_plot(ctx,countplot)
+        # display_plot(ctx, countplot)
+
+    @commands.command(name="polarity")
+    async def polarity(self,ctx):
+        '''display polarity by author on barplot
+        currently grouped by mean, needs testing, 
+        requires buildpack or nltk.txt for textblob when deploying to heroku'''
+        # await message = ctx.send("Loading polarity...")
+        msgs = []
+        for channel in ctx.guild.text_channels:
+            async for message in channel.history(limit=1000):
+                blob = TextBlob(message.content)
+                polarity = blob.sentiment.polarity
+                msgs.append({
+                'author': message.author.name,
+                'polarity': polarity})
+        df = pd.DataFrame(msgs)
+        df = df.groupby(['author']).mean()
+
+        barplot = sns.barplot(y=df.index, x=df.polarity)
+        await self.display_plot(ctx, barplot)
 
     # @commands.command(name='repeat', aliases=['copy', 'mimic'])
     # async def do_repeat(self, ctx, *, our_input: str):
@@ -108,3 +140,4 @@ class NlpCog(commands.Cog, name="Nlp Commands"):
 
 def setup(bot):
     bot.add_cog(NlpCog(bot))
+
